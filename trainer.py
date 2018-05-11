@@ -119,6 +119,9 @@ class Train:
         return out_layer
 
     def train(self):
+        # Create session
+        sess = tf.Session()
+
         # Randomly mix the order of rows
         X, Y = shuffle(self.X, self.Y, random_state=1)
         print("Splitting dataset into training and test sections...")
@@ -129,7 +132,7 @@ class Train:
               "  Test_data shape: ", test_x.shape)
         time.sleep(1.5)
 
-        n_dim = self.X.shape[1]
+        n_dim = tf.constant(self.X.shape[1], name='n_dim')
         print("Data dimensions: ", n_dim)
         time.sleep(1)
 
@@ -139,11 +142,11 @@ class Train:
         perceptron_n_layer4 = self.n_perceptrons_layer
         perceptron_n_layer5 = self.n_perceptrons_layer
 
-        x = tf.placeholder(tf.float32, [None, n_dim], name='x')
+        x = tf.placeholder(tf.float32, [None, sess.run(n_dim)], name='x')
         y = tf.placeholder(tf.float32, [None, self.n_classes], name='y')
 
         weights = {
-            'h1': tf.Variable(tf.truncated_normal([n_dim, perceptron_n_layer1]), name='weights1'),
+            'h1': tf.Variable(tf.truncated_normal([sess.run(n_dim), perceptron_n_layer1]), name='weights1'),
             'h2': tf.Variable(tf.truncated_normal([perceptron_n_layer1, perceptron_n_layer2]), name='weights2'),
             'h3': tf.Variable(tf.truncated_normal([perceptron_n_layer2, perceptron_n_layer3]), name='weights3'),
             'h4': tf.Variable(tf.truncated_normal([perceptron_n_layer3, perceptron_n_layer4]), name='weights4'),
@@ -152,12 +155,12 @@ class Train:
         }
 
         biases = {
-            'b1': tf.Variable(tf.truncated_normal([perceptron_n_layer1]), name='biases'),
-            'b2': tf.Variable(tf.truncated_normal([perceptron_n_layer2]), name='biases'),
-            'b3': tf.Variable(tf.truncated_normal([perceptron_n_layer3]), name='biases'),
-            'b4': tf.Variable(tf.truncated_normal([perceptron_n_layer4]), name='biases'),
-            'b5': tf.Variable(tf.truncated_normal([perceptron_n_layer5]), name='biases'),
-            'out': tf.Variable(tf.truncated_normal([self.n_classes]), name='biases')
+            'b1': tf.Variable(tf.truncated_normal([perceptron_n_layer1]), name='biases1'),
+            'b2': tf.Variable(tf.truncated_normal([perceptron_n_layer2]), name='biases2'),
+            'b3': tf.Variable(tf.truncated_normal([perceptron_n_layer3]), name='biases3'),
+            'b4': tf.Variable(tf.truncated_normal([perceptron_n_layer4]), name='biases4'),
+            'b5': tf.Variable(tf.truncated_normal([perceptron_n_layer5]), name='biases5'),
+            'out': tf.Variable(tf.truncated_normal([self.n_classes]), name='biases6')
         }
 
         model = self.multilayer_neural_network(x, weights, biases)
@@ -167,7 +170,6 @@ class Train:
         cost_function = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=y))
         trainer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(cost_function)
 
-        sess = tf.Session()
         sess.run(init)
 
         mse_history = []
@@ -211,3 +213,8 @@ class Train:
         print("Final cost: ", (sess.run(cost_function, {x: test_x, y: test_y})))
 
         saver.save(sess, self.model_store_path, global_step=1000)
+
+
+trainer = Train('data/training_data2.csv', 10000, 3, 'training_models/fruit_pred_model5/', epochs=250,
+                learning_rate=0.3, n_perceptrons_layer=51)
+trainer.train()

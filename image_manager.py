@@ -1,5 +1,38 @@
 import csv
 from PIL import Image
+import os
+
+
+class PathManager:
+    def __init__(self, im_paths, id):
+        self.im_paths = im_paths
+        self.id = id
+
+        if not os.path.exists(im_paths):
+            with open(im_paths, 'w') as pathfile:
+                pathfile.close()
+
+    def copy_paths(self):
+        paths = self.clean_read_paths()
+        sess_id = int(self.id)
+        with open('metadata/cpaths.csv', 'a') as pathfile:
+            writer = csv.writer(pathfile, delimiter=',')
+            writer.writerow([sess_id])
+            for path in paths:
+                writer.writerow([path])
+
+        return True
+
+    def read_paths(self):
+        with open(self.im_paths, 'r') as imgfile:
+            paths = imgfile.readlines()
+        return paths
+
+    def clean_read_paths(self):
+        paths = self.read_paths()
+        for n in range(len(paths)):
+            paths[n] = paths[n].split('\n')[0]
+        return paths
 
 
 class ImageLoader:
@@ -33,17 +66,6 @@ class ImageLoader:
 
         return True
 
-    def copy_paths(self):
-        paths = self.clean_read_paths()
-        sess_id = int(self.get_sess_id())
-        with open('cpaths.csv', 'w') as pathfile:
-            writer = csv.writer(pathfile, delimiter=',')
-            writer.writerow([sess_id])
-            for path in paths:
-                writer.writerow([path])
-
-        return True
-
     def read_paths(self):
         with open(self.im_paths, 'r') as imgfile:
             paths = imgfile.readlines()
@@ -61,10 +83,6 @@ class ImageLoader:
             pixels = img.load()
             raw_pixels.append(pixels)
         return raw_pixels
-
-    def n_im(self):
-        for image in range(self.n_images):
-            yield image
 
     def mean_pixels(self):
         for pixels in self.load_pixels():
@@ -90,7 +108,11 @@ class ImageLoader:
         return sizes
 
     def main(self):
-        self.copy_paths()
+        #####################################################
+        pman = PathManager(self.im_paths, self.get_sess_id())
+        pman.copy_paths()
+        #####################################################
+
         return self.getRGB()
 
     def getRGB(self):
@@ -134,13 +156,13 @@ class ImageTrainDataWriter:
 
     def clean_raw_data(self):
         raw = self.read_labels()
+        clean = []
         for line in range(len(raw)):
-            raw[line] = raw[line].split('\n')[0]
-        clean = raw
+            clean.append(raw[line].split('\n')[0])
         self.labels = clean
 
     def main(self):
-        print(self.input_data)
+        self.clean_raw_data()
         for imn in range(len(self.input_data)):
             self.input_data[imn].append(self.labels[imn])
             self.writeCSV(self.input_data[imn])
@@ -151,8 +173,14 @@ class ImageTrainDataWriter:
             writer.writerow(img)
 
 
-i = ImageLoader('images.txt')
-pixel_data = i.main()
-itdw = ImageDataWriter(pixel_data, 'test_apple_predicter.csv')
-# itdw.clean_raw_data()
+i = ImageLoader('metadata/paths/images3.txt')
+data = i.main()
+print(len(data))
+itdw = ImageDataWriter(data, 'data/unclassified2.csv')
 itdw.main()
+
+
+# i = ImageLoader('metadata/paths/images2.txt')
+# pixel_data = i.main()
+# itdw = ImageDataWriter(pixel_data, 'data/unclassified_data4.csv')
+# itdw.main()
