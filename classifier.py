@@ -21,12 +21,9 @@ class Predict:
 
         self.raw_predictions = []
         self.predictions = []
-        print("self.metadata doing...")
         self.Meta = MetaData(sess_id)
-        print("reader doing")
-        x = self.Meta.read('data_path', sess_id=sess_id)
-        print("x", x)
-        self.Reader = Reader(x)
+        meta = self.Meta.read('data_path', sess_id=sess_id)
+        self.Reader = Reader(meta)
 
         self.pfnames = [self.prediction_fname+'.csv', self.prediction_fname+'_pfile.csv']
 
@@ -64,7 +61,7 @@ class Predict:
 
         return int_to_label
 
-    def train(self):
+    def predict(self):
         sess = tf.Session()
 
         # Create saver
@@ -98,15 +95,17 @@ class Predict:
         model = self.multilayer_perceptron(x, weights, biases)
 
         prediction = sess.run(model, feed_dict={x: self.Reader.clean_read()})
+        print(prediction)
 
         pred_labels_int = np.ndarray.tolist(sess.run(tf.argmax(prediction, axis=1)))
         self.raw_predictions = pred_labels_int
 
         self.int_to_label()
+        print(self.predictions)
         self.write_predictions()
 
     def show(self, p, ph):
-        im = cv2.imread(ph[0])
+        im = cv2.imread(ph)
 
         cv2.imshow(p, im)
         cv2.waitKey(0)
@@ -119,8 +118,9 @@ class Predict:
             for label in lbfile.readlines():
                 model_labels.append(label.strip('\n')[0])
 
-        assigned_labels = self.label_assigner(model_labels)
-        print(assigned_labels)
+        # assigned_labels = self.label_assigner(model_labels)
+        # print(assigned_labels)
+        assigned_labels = {'A': 0, 'L': 1, 'P': 2}
 
         for raw_prediction in self.raw_predictions:
             for pred_char, pred_int in assigned_labels.items():
@@ -132,7 +132,9 @@ class Predict:
     def write_predictions(self):
         # Re-write data in addition to predicted labels in CSV file; filename is a parameter
         data = self.Reader.clean_read()
-
+        print(len(data))
+        print(self.predictions)
+        print(self.raw_predictions)
         for pix_data_n in range(len(data)):
             data[pix_data_n].append(self.predictions[pix_data_n])
 
@@ -176,7 +178,7 @@ class Predict:
         layer_3 = tf.add(tf.matmul(layer_2, weights['h3']), biases['b3'])
         layer_3 = tf.nn.sigmoid(layer_3)
 
-        # Hidden layer with RELU activation
+        # Hidden layer with ReLU activation
         layer_4 = tf.add(tf.matmul(layer_3, weights['h4']), biases['b4'])
         layer_4 = tf.nn.relu(layer_4)
 
@@ -185,18 +187,16 @@ class Predict:
         return out_layer
 
     def main(self):
-        self.train()
+        self.predict()
         self.Meta.write(used_model_path__output=self.model_path +
-                        self.model_path+'__' +
-                        self.pfnames[0] +
-                        '_'+self.pfnames[1])
+                        self.model_name+'___' +
+                        os.getcwd()+'/'+self.pfnames[0] +
+                        '__'+os.getcwd()+'/'+self.pfnames[1])
 
 
-# p = Predict(5, '/home/planetgazer8360/PycharmProjects/NN-Image_recognition/training_models/fruit_model2/',
-#             'data/unclassified2.csv', '-1000')
-# p.main()
-
-pr = Predict(3, '/home/planetgazer8360/PycharmProjects/TensorFlow/my_test_model4/', '-1000', show_im=False)
+pr = Predict(7, 'training_models/fruit_model4/',
+             '-1000',
+             show_im=False)
 pr.main()
 
-# /home/planetgazer8360/PycharmProjects/TensorFlow/my_test_model4/
+# /home/planetgazer8360/PycharmProjects/TensorFlow/fruit_model4/
