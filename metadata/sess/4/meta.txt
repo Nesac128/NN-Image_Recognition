@@ -1,0 +1,3 @@
+PATH_FILE=images.txt
+DATA_PATH=/home/planetgazer8360/PycharmProjects/NN-Image_recognition/data/unclassified_data4.csv
+USED_MODEL_PATH__OUTPUT=/home/planetgazer8360/PycharmProjects/TensorFlow/fruit_model2//home/planetgazer8360/PycharmProjects/TensorFlow/fruit_model2/__predictions.csv_predictions_pfile.csv

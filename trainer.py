@@ -43,6 +43,7 @@ class Train:
 
         # Defining training variables
         self.X, self.Y = self.read_dataset()
+        print(self.Y)
 
         self.x_shape = self.X.shape
         self.y_shape = self.Y.shape
@@ -50,10 +51,14 @@ class Train:
         self.weights = None
         self.biases = None
 
+        self.read_labels = []
+
     def read_dataset(self):
         df = pd.read_csv(self.training_data_path, header=None)
         X = df[df.columns[0:self.n_columns]].values
         y = df[df.columns[self.n_columns]]
+
+        self.read_labels = pd.Series.tolist(y)
 
         # Encode the dependent variable
         encoder = LabelEncoder()
@@ -136,7 +141,7 @@ class Train:
         print("Data dimensions: ", n_dim)
         time.sleep(1)
 
-        perceptron_n_layer1 = self.n_perceptrons_layer
+        perceptron_n_layer1 = 100
         perceptron_n_layer2 = self.n_perceptrons_layer
         perceptron_n_layer3 = self.n_perceptrons_layer
         perceptron_n_layer4 = self.n_perceptrons_layer
@@ -214,7 +219,11 @@ class Train:
 
         saver.save(sess, self.model_store_path, global_step=1000)
 
+        with open(self.model_store_path+'labels.txt', 'w') as lbfile:
+            for label in self.read_labels:
+                lbfile.write(label + '\n')
 
-trainer = Train('data/training_data2.csv', 10000, 3, 'training_models/fruit_pred_model5/', epochs=250,
+
+trainer = Train('data/training_data3.csv', 10000, 3, 'training_models/fruit_model5/', epochs=200,
                 learning_rate=0.3, n_perceptrons_layer=51)
-trainer.train()
+# trainer.train()

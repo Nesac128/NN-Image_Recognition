@@ -130,7 +130,7 @@ class ImageTrainDataWriter:
             writer.writerow(img)
 
 
-i = ImageLoader('test.txt')
+i = ImageLoader('images3.txt')
 data = i.main()
-itdw = ImageDataWriter(data, 'data/unclassified5.csv')
+itdw = ImageDataWriter(data, 'data/unclassified_lemons.csv')
 itdw.main()

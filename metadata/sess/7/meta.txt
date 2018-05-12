@@ -1,0 +1,5 @@
+PATH_FILE=images3.txt
+DATA_PATH=/home/planetgazer8360/PycharmProjects/NN-Image_recognition/data/unclassified_lemons.csv
+USED_MODEL_PATH__OUTPUT=/home/planetgazer8360/PycharmProjects/TensorFlow/fruit_model4/-1000___/home/planetgazer8360/PycharmProjects/NN-Image_recognitionpredictions.csv__/home/planetgazer8360/PycharmProjects/NN-Image_recognitionpredictions_pfile.csv
+USED_MODEL_PATH__OUTPUT=training_models/fruit_model4/-1000___/home/planetgazer8360/PycharmProjects/NN-Image_recognition/predictions.csv__/home/planetgazer8360/PycharmProjects/NN-Image_recognition/predictions_pfile.csv
+USED_MODEL_PATH__OUTPUT=training_models/fruit_model4/-1000___/home/planetgazer8360/PycharmProjects/NN-Image_recognition/predictions.csv__/home/planetgazer8360/PycharmProjects/NN-Image_recognition/predictions_pfile.csv

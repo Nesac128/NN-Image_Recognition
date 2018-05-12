@@ -1,0 +1,2 @@
+PATH_FILE=images.txt
+DATA_PATH=/home/planetgazer8360/PycharmProjects/NN-Image_recognition/data/training_data4.csv
