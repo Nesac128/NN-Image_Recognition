@@ -2,34 +2,33 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import string
-import csv
 import cv2
+from pcontrol import *
 
 
 class Predict:
     def __init__(self,
-                 id,
+                 sess_id: int,
                  model_path,
-                 raw_data_for_prediction_path,
                  model_name,
                  prediction_fname='predictions',
                  show_im: bool=True):
         self.model_path = model_path
-        self.data_to_classify_path = raw_data_for_prediction_path
         self.model_name = model_name
         self.prediction_fname = prediction_fname
-        self.id = int(id)
+        self.id = sess_id
         self.show_im = show_im
 
-        self.raw_predictions = None
+        self.raw_predictions = []
         self.predictions = []
+        print("self.metadata doing...")
+        self.Meta = MetaData(sess_id)
+        print("reader doing")
+        x = self.Meta.read('data_path', sess_id=sess_id)
+        print("x", x)
+        self.Reader = Reader(x)
 
-        self.sess_id = 0
-
-    def get_data(self):
-        df = pd.read_csv(self.data_to_classify_path, header=None)
-        X = df[df.columns[0:len(df.columns)]].values
-        return X
+        self.pfnames = [self.prediction_fname+'.csv', self.prediction_fname+'_pfile.csv']
 
     def label_assigner(self, labels):
         unique_labels = []
@@ -53,7 +52,6 @@ class Predict:
             ln += 1
 
         ln = 0
-
         for letter in list(string.ascii_lowercase):
             labels_DOWN[letter] = ln
             ln += 1
@@ -66,7 +64,7 @@ class Predict:
 
         return int_to_label
 
-    def main(self):
+    def train(self):
         sess = tf.Session()
 
         # Create saver
@@ -99,11 +97,9 @@ class Predict:
 
         model = self.multilayer_perceptron(x, weights, biases)
 
-        prediction = sess.run(model, feed_dict={x: self.get_data()})
-        # print(prediction)
+        prediction = sess.run(model, feed_dict={x: self.Reader.clean_read()})
 
         pred_labels_int = np.ndarray.tolist(sess.run(tf.argmax(prediction, axis=1)))
-        # print(pred_labels_int)
         self.raw_predictions = pred_labels_int
 
         self.int_to_label()
@@ -127,9 +123,7 @@ class Predict:
         print(assigned_labels)
 
         for raw_prediction in self.raw_predictions:
-            # print(raw_prediction)
             for pred_char, pred_int in assigned_labels.items():
-                # print(pred_char, pred_int)
                 if raw_prediction == pred_int:
                     self.predictions.append(pred_char)
 
@@ -137,66 +131,32 @@ class Predict:
 
     def write_predictions(self):
         # Re-write data in addition to predicted labels in CSV file; filename is a parameter
-        raw = self.get_data()
-        p_raw = list(np.ndarray.tolist(raw))
-        # print(len(p_raw))
-        # print(len(self.predictions))
+        data = self.Reader.clean_read()
 
-        for pix_dat_n in range(len(raw)):
-            p_raw[pix_dat_n].append(self.predictions[pix_dat_n])
+        for pix_data_n in range(len(data)):
+            data[pix_data_n].append(self.predictions[pix_data_n])
 
-        tfl = p_raw
-
-        with open(self.prediction_fname + '.csv', 'a') as csvfile:
+        with open(self.pfnames[0], 'a') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
-            for pr in tfl:
-                writer.writerow(pr)
+            for im_pix_data in data:
+                writer.writerow(im_pix_data)
 
         # Write image paths together with predicted labels in CSV file
-        df = pd.read_csv(self.data_to_classify_path, header=None)
+        df = pd.read_csv(self.Meta.read('data_path', sess_id=self.id), header=None)
 
         raw_rows = df.iterrows()
         rows = []
         for index, row in raw_rows:
             rows.append(list(row.values))
 
-        for row in rows:
-            try:
-                self.sess_id = int(row[0])
-            except ValueError:
-                continue
-
-        df = pd.read_csv('metadata/cpaths.csv', header=None)
+        df = pd.read_csv('metadata/sess/'+str(self.id)+'/impaths.csv', header=None)
 
         raw_rows = df.iterrows()
-        rows = []
-        for _, row in raw_rows:
-            try:
-                rows.append(int(list(row)[0]))
-            except ValueError:
-                rows.append(list(row)[0])
-                pass
-
         paths = []
+        for _, row in raw_rows:
+            paths.append(list(row)[0])
 
-        flag = [False]
-
-        for row in rows:
-            if type(row) == int and row == self.id:
-                flag.append(True)
-            else:
-                pass
-
-            if flag[-1] is True:
-                if type(row) == str:
-                    paths.append(row)
-                elif type(row) == int:
-                    if row != self.id:
-                        break
-                    else:
-                        continue
-
-        with open(self.prediction_fname+'_cpaths.csv', 'w') as pathfile:
+        with open(self.pfnames[1], 'w') as pathfile:
             writer = csv.writer(pathfile, delimiter=',')
             for n in range(len(paths)):
                 if self.show_im is True:
@@ -204,7 +164,7 @@ class Predict:
                 writer.writerow([paths[n], self.predictions[n]])
 
     def multilayer_perceptron(self, x, weights, biases):
-        # Hidden layer with RELU activationsd
+        # Hidden layer with RELU activation
         layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
         layer_1 = tf.nn.sigmoid(layer_1)
 
@@ -224,9 +184,19 @@ class Predict:
         out_layer = tf.matmul(layer_4, weights['out']) + biases['out']
         return out_layer
 
+    def main(self):
+        self.train()
+        self.Meta.write(used_model_path__output=self.model_path +
+                        self.model_path+'__' +
+                        self.pfnames[0] +
+                        '_'+self.pfnames[1])
 
-p = Predict(5, '/home/planetgazer8360/PycharmProjects/NN-Image_recognition/training_models/fruit_model2/',
-            'data/unclassified2.csv', '-1000')
-p.main()
+
+# p = Predict(5, '/home/planetgazer8360/PycharmProjects/NN-Image_recognition/training_models/fruit_model2/',
+#             'data/unclassified2.csv', '-1000')
+# p.main()
+
+pr = Predict(3, '/home/planetgazer8360/PycharmProjects/TensorFlow/my_test_model4/', '-1000', show_im=False)
+pr.main()
 
 # /home/planetgazer8360/PycharmProjects/TensorFlow/my_test_model4/

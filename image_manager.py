@@ -1,81 +1,32 @@
-import csv
 from PIL import Image
-import os
-
-
-class PathManager:
-    def __init__(self, im_paths, id):
-        self.im_paths = im_paths
-        self.id = id
-
-        if not os.path.exists(im_paths):
-            with open(im_paths, 'w') as pathfile:
-                pathfile.close()
-
-    def copy_paths(self):
-        paths = self.clean_read_paths()
-        sess_id = int(self.id)
-        with open('metadata/cpaths.csv', 'a') as pathfile:
-            writer = csv.writer(pathfile, delimiter=',')
-            writer.writerow([sess_id])
-            for path in paths:
-                writer.writerow([path])
-
-        return True
-
-    def read_paths(self):
-        with open(self.im_paths, 'r') as imgfile:
-            paths = imgfile.readlines()
-        return paths
-
-    def clean_read_paths(self):
-        paths = self.read_paths()
-        for n in range(len(paths)):
-            paths[n] = paths[n].split('\n')[0]
-        return paths
+from pcontrol import *
 
 
 class ImageLoader:
     def __init__(self, im_paths):
+        self.sess = Sess()
+        self.sess.add()
+
         self.rgb_vals = []
         self.imgs = []
         self.n_images = len(im_paths)
 
-        self.im_paths = im_paths
+        self.pfile = im_paths
         self.open_images()
 
         self.pixels = []
 
-        self.sess_id()
+        if not os.path.exists('metadata/sess/'+str(self.sess.read()+'/')):
+            os.mkdir('metadata/sess/'+str(self.sess.read()+'/'))
 
-    def sess_id(self):
-        with open('im_session.txt', 'r') as sessfile:
-            i = int(sessfile.readline())
-
-        with open('im_session.txt', 'w') as sessfile:
-            sessfile.write(str(i + 1))
-
-    def get_sess_id(self):
-        with open('im_session.txt', 'r') as sessfile:
-            return sessfile.readline()
+        self.Meta = MetaData(self.sess.read())
 
     def open_images(self):
-        for img_path in self.clean_read_paths():
+        reader = Reader(self.pfile)
+        for img_path in reader.clean_read():
             img = Image.open(img_path)
             self.imgs.append(img)
-
         return True
-
-    def read_paths(self):
-        with open(self.im_paths, 'r') as imgfile:
-            paths = imgfile.readlines()
-        return paths
-
-    def clean_read_paths(self):
-        paths = self.read_paths()
-        for n in range(len(paths)):
-            paths[n] = paths[n].split('\n')[0]
-        return paths
 
     def load_pixels(self):
         raw_pixels = []
@@ -108,10 +59,10 @@ class ImageLoader:
         return sizes
 
     def main(self):
-        #####################################################
-        pman = PathManager(self.im_paths, self.get_sess_id())
-        pman.copy_paths()
-        #####################################################
+        self.Meta.write(path_file=self.pfile)
+
+        pman = PathManager()
+        pman.cpaths()
 
         return self.getRGB()
 
@@ -128,10 +79,13 @@ class ImageDataWriter:
     def __init__(self, data, fname):
         self.raw_data = data
         self.fname = fname
+        self.Meta = MetaData(Sess().read())
 
     def main(self):
         for image_data in self.raw_data:
             self.writeCSV(image_data)
+        print(self.fname)
+        self.Meta.write(data_path=os.getcwd()+'/'+self.fname)
 
     def writeCSV(self, img):
         with open(self.fname, 'a') as csvfile:
@@ -147,6 +101,8 @@ class ImageTrainDataWriter:
         self.labels_path = labels_path
 
         self.labels = []
+
+        self.Meta = MetaData(Sess().read())
 
     def read_labels(self):
         with open(self.labels_path, 'r') as txtfile:
@@ -166,6 +122,7 @@ class ImageTrainDataWriter:
         for imn in range(len(self.input_data)):
             self.input_data[imn].append(self.labels[imn])
             self.writeCSV(self.input_data[imn])
+        self.Meta.write(data_path=os.getcwd()+self.fname)
 
     def writeCSV(self, img):
         with open(self.fname, 'a') as csvfile:
@@ -173,14 +130,7 @@ class ImageTrainDataWriter:
             writer.writerow(img)
 
 
-i = ImageLoader('metadata/paths/images3.txt')
+i = ImageLoader('test.txt')
 data = i.main()
-print(len(data))
-itdw = ImageDataWriter(data, 'data/unclassified2.csv')
+itdw = ImageDataWriter(data, 'data/unclassified5.csv')
 itdw.main()
-
-
-# i = ImageLoader('metadata/paths/images2.txt')
-# pixel_data = i.main()
-# itdw = ImageDataWriter(pixel_data, 'data/unclassified_data4.csv')
-# itdw.main()
