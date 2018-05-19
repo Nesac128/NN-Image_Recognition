@@ -26,18 +26,23 @@ class MetaData:
                     metadata.write(key.upper()+'='+val+'\n')
 
     def read(self, *tags, sess_id):
+        print(tags)
         reader = Reader('metadata/sess/' + str(sess_id) + '/meta.txt')
         meta = reader.clean_read()
         for mt in meta:
             for tag in tags:
                 if tag.upper() == mt.split('=')[0]:
-                    return mt.split('=')[1]
+                    print("ret: ", mt.split('=')[1])
+                    yield mt.split('=')[1]
 
 
 class Reader:
     def __init__(self, file, delimiter='\n'):
         self.file = file
+        print(self.file)
         self.format = self.file.split('.')[-1]
+        print(self.format)
+        # exit(0)
         self.delm = delimiter
 
     def read_raw(self):
@@ -66,7 +71,11 @@ class PathManager:
         self.sess_id = self.sess.read()
         self.Meta = MetaData(int(self.sess_id))
 
-        self.pfile = self.Meta.read('path_file', sess_id=self.sess_id)
+        raw_meta = self.Meta.read('path_file', sess_id=self.sess_id)
+
+        meta = [mt for mt in raw_meta]
+
+        self.pfile = meta[0]
 
         if not os.path.exists('metadata/sess/' + self.sess_id + '/impaths.csv'):
             with open('metadata/sess/' + self.sess_id + '/impaths.csv', 'w') as pathfile:
