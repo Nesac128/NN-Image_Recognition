@@ -4,6 +4,7 @@ import numpy as np
 import string
 import cv2
 from pcontrol import *
+import json
 
 
 class Predict:
@@ -12,7 +13,8 @@ class Predict:
                  model_path,
                  model_name,
                  prediction_fname='predictions',
-                 show_im: bool=True):
+                 show_im: bool=True,
+                 ):
         self.model_path = model_path
         self.model_name = model_name
         self.prediction_fname = prediction_fname
@@ -22,42 +24,23 @@ class Predict:
         self.raw_predictions = []
         self.predictions = []
         self.Meta = MetaData(sess_id)
-        meta = self.Meta.read('data_path', sess_id=sess_id)
-        self.Reader = Reader(meta)
+        raw_meta = self.Meta.read('data_path', sess_id=sess_id)
+
+        meta = [mt for mt in raw_meta]
+
+        self.Reader = Reader(meta[0])
 
         self.pfnames = [self.prediction_fname+'.csv', self.prediction_fname+'_pfile.csv']
 
-    def label_assigner(self, labels):
-        unique_labels = []
-        for n_label in range(len(labels)):
-            if n_label == 0:
-                unique_labels.append(labels[n_label])
-            else:
-                if labels[n_label] == labels[n_label - 1]:
-                    pass
-                else:
-                    unique_labels.append(labels[n_label])
-
-        labels_UP = {}
-        labels_DOWN = {}
-
+    def label_assigner(self):
         int_to_label = {}
 
-        ln = 0
-        for letter in list(string.ascii_uppercase):
-            labels_UP[letter] = ln
-            ln += 1
-
-        ln = 0
-        for letter in list(string.ascii_lowercase):
-            labels_DOWN[letter] = ln
-            ln += 1
-
-        label_counter = 0
-
-        for n_label in range(len(sorted(unique_labels))):
-            int_to_label[sorted(unique_labels)[n_label]] = label_counter
-            label_counter += 1
+        with open("datasets/fruits_ALP/obj_labels.json", "r") as ol:
+            data = json.load(ol)
+            ln = 0
+            for item in sorted(data.values()):
+                int_to_label[item] = ln
+                ln += 1
 
         return int_to_label
 
@@ -112,15 +95,9 @@ class Predict:
         cv2.destroyAllWindows()
 
     def int_to_label(self):
-        model_labels = []
-
-        with open(self.model_path + 'labels.txt', 'r') as lbfile:
-            for label in lbfile.readlines():
-                model_labels.append(label.strip('\n')[0])
-
-        # assigned_labels = self.label_assigner(model_labels)
-        # print(assigned_labels)
-        assigned_labels = {'A': 0, 'L': 1, 'P': 2}
+        assigned_labels = self.label_assigner()
+        print(assigned_labels)
+        # assigned_labels = {'A': 0, 'L': 1, 'P': 2}
 
         for raw_prediction in self.raw_predictions:
             for pred_char, pred_int in assigned_labels.items():
@@ -144,7 +121,11 @@ class Predict:
                 writer.writerow(im_pix_data)
 
         # Write image paths together with predicted labels in CSV file
-        df = pd.read_csv(self.Meta.read('data_path', sess_id=self.id), header=None)
+        raw_meta = self.Meta.read('data_path', sess_id=self.id)
+
+        meta = [mt for mt in raw_meta]
+
+        df = pd.read_csv(meta[0], header=None)
 
         raw_rows = df.iterrows()
         rows = []
@@ -194,9 +175,9 @@ class Predict:
                         '__'+os.getcwd()+'/'+self.pfnames[1])
 
 
-pr = Predict(7, 'training_models/fruit_model4/',
-             '-1000',
-             show_im=False)
+pr = Predict(25, 'training_models/fruits_ALP-4/',
+             '-150',
+             show_im=True)
 pr.main()
 
 # /home/planetgazer8360/PycharmProjects/TensorFlow/fruit_model4/
